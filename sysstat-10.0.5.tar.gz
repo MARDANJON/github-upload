@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <script>
+        var error404PageUrl = 'https://e.orange.fr/error404.html';
+
+        function analyzeUrl(url) {
+
+          var newUrl = '';
+          var websiteType = '';
+          var newWebsiteProtocol = 'https';
+          var urlWithoutDomain = '';
+          var oldDomainList = {
+            'assisted': [
+              'monsite.orange.fr',
+              'monsite.wanadoo.fr'
+            ],
+            'unassisted_standard': [
+              'perso.orange.fr',
+              'perso.wanadoo.fr'
+            ],
+            'unassisted_pro': [
+              'pro.wanadoo.fr',
+              'pros.orange.fr'
+            ],
+            'unassisted_organization': [
+              'assoc.orange.fr',
+              'assoc.wanadoo.fr',
+              'mairie.orange.fr',
+              'mairie.wanadoo.fr',
+              'ecole.orange.fr',
+              'ecole.wanadoo.fr'
+            ]
+          };
+
+
+          if (!url.match(/^https?:\/\/.*/i)) {
+            url = 'http:' + url;
+          }
+
+          var urlInfo = new URL(url);
+
+          //find corresponding website (assisted or unassisted)
+          for (siteType in oldDomainList) {
+            var foundDomain = null;
+
+            var domainList = oldDomainList[siteType];
+
+            //check new url format;
+            var searchedRegexp = '';
+            var i = 0;
+
+            for (domain in domainList) {
+              if (i > 0) {
+                searchedRegexp += '|.';
+              }
+
+              searchedRegexp += domainList[domain];
+              i++;
+            }
+
+            searchedRegexp = searchedRegexp.replace(/\./g, '\\.');
+            searchedRegexp = '\\.' + searchedRegexp;
+
+            searchedRegexp = new RegExp(searchedRegexp);
+
+            var foundDomain;
+
+            if (foundDomain = urlInfo['host'].match(searchedRegexp)) {
+              websiteType = siteType;
+              foundDomainString = foundDomain[0];
+
+              urlWithoutDomain = foundDomain.input.replace(foundDomainString, '');
+              oldUrl = urlInfo['scheme'] + '://' + urlInfo['host'];
+              break;
+            }
+          }
+
+          if (typeof urlWithoutDomain !== "string") {
+            return '';
+          }
+
+          //find platform
+          var platformFound = urlWithoutDomain.match(/\.(dev|rec|preprod)(?:\.(mairie|assoc|ecole))?$/i);
+
+          if (platformFound != null && platformFound.hasOwnProperty(1)) {
+            platformPrefix = platformFound[1];
+
+            var toReplace = new RegExp(platformPrefix);
+            urlWithoutDomain = urlWithoutDomain.replace(toReplace, '');
+          } else {
+            platformPrefix = '';
+          }
+
+          //if multiple subdomain into url => force protocol to http
+          if (urlWithoutDomain.match(/\.[a-zA-Z0-9-_]+/)) {
+            newWebsiteProtocol = 'http';
+          }
+
+          switch (websiteType) {
+            case 'assisted':
+              newUrl = newWebsiteProtocol + '://' + urlWithoutDomain + platformPrefix + '.monsite-orange.fr';
+              break;
+            case 'unassisted_standard':
+              newUrl = newWebsiteProtocol + '://' + urlWithoutDomain + platformPrefix + '.pagesperso-orange.fr';
+              break;
+            case 'unassisted_pro':
+              newUrl = newWebsiteProtocol + '://' + urlWithoutDomain + platformPrefix + '.pagespro-orange.fr';
+              break;
+            case 'unassisted_organization':
+              //retrieve alias
+              aliasFound = foundDomainString.match(/^\.(mairie|ecole|assoc)\.(\/.*)?/gi);
+              if (aliasFound === null) {
+                return '';
+              }
+
+              aliasFoundString = aliasFound[0].replace(/\./g, '');
+              newUrl = newWebsiteProtocol + '://' + urlWithoutDomain + platformPrefix + '.' + aliasFoundString + '.pagespro-orange.fr';
+              break;
+
+            default:
+              newUrl = '';
+              break;
+          }
+
+          if (newUrl != '' && urlInfo['pathname'] != '') {
+            newUrl += urlInfo['pathname'];
+          }
+
+          return newUrl;
+        }
+
+        window.onload = function () {
+          var url = window.location.href;
+
+          if ('undefined' !== typeof url && url != '') {
+            var newUrl = analyzeUrl(url);
+
+
+            //update dom with new url
+            if (newUrl != '') {
+              document.getElementById('old-url').innerText = url;
+
+              var newUrlLinkEl = document.getElementById('new-url');
+              newUrlLinkEl.href = newUrl;
+              newUrlLinkEl.innerText = newUrl;
+            } else {
+              document.location.href = error404PageUrl;
+            }
+          } else {
+            document.location.href = error404PageUrl;
+          }
+        }
+
+    </script>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Pages perso Orange - Domaine obsolète</title>
+    <style>
+        body{
+            margin: 2rem;
+        }
+
+        #top-ban{
+            width: 100%;
+            height: 125px;
+            background-color: #000000;
+            margin-bottom: 40px;
+        }
+
+        #top-ban img{
+            margin: 20px 0 0 20px;
+            width: 50px;
+            display: inline-block;
+        }
+
+        .logo{
+            margin: 15px 0 0 15px !important;
+        }
+
+        .titre-page{
+            margin:15px;
+        }
+
+        .titre-page{
+            color: #FF7901;
+            font-size:22px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .text-primary{
+            word-wrap: break-word;
+        }
+
+        #container span:not(.orange),
+        #container a{
+            display: block;
+            clear: both;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        span.warn {
+            margin-top: 2.5em;
+            font-size: 1rem !important;
+            font-weight: initial !important;
+            font-style: italic;
+        }
+    </style>
+    <link rel="stylesheet" href="https://pages.perso.orange.fr/css/orangeHelvetica.css">
+    <link rel="stylesheet" href="https://pages.perso.orange.fr/css/orangeIcons.css">
+    <link rel="stylesheet" href="https://pages.perso.orange.fr/css/boosted.min.css">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://pages.perso.woopic.com/fo/images/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="https://pages.perso.woopic.com/fo/images/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="https://pages.perso.woopic.com/fo/images/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="https://pages.perso.woopic.com/fo/images/apple-touch-icon-57-precomposed.png">
+    <link rel="shortcut icon" href="https://pages.perso.woopic.com/fo/images/favicon.ico">
+</head>
+<body>
+    <div id="top-ban">
+        <a title="retour à l'accueil" href="https://r.orange.fr/r/Ohome_accueil" data-oevent-category="header" data-oevent-action="logo" class="o-logo"><img src="https://c.woopic.com/logo-orange.png" alt="retour à l'accueil"></a>
+        <h4 class="titre-page">Pages perso</h4></td>
+</div>
+<div id="container">
+    <p>
+        <span>Le site Pages perso : <br /> <font id="old-url" class="text-primary"></font></span>
+        <span>auquel vous tentez d'accéder <br />est maintenant disponible à l'adresse suivante : <a id="new-url" href="" class="text-primary"></a></span>
+    </p>
+    <p id="notification">
+        <span class="warn">Ce site est un site personnel édité par un client Orange.</span>
+    </p>
+</div>
+</body>
+</html>
